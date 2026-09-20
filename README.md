@@ -38,8 +38,8 @@ Raspberry Pi side).
 
 ```
 ┌─────────────────┐         CAN Bus (500 kbit/s)          ┌──────────────────────┐
-│  Raspberry Pi 5  │ ◄──────────────────────────────────► │  STM32 (Nucleo L476RG │
-│                  │   MCP2515 (CAN HAT)  <->  SN65HVD230  │  or F4 Discovery)     │
+│  Raspberry Pi 5  │ ◄──────────────────────────────────► │  STM32F4 Discovery    │
+│                  │   MCP2515 (CAN HAT)  <->  SN65HVD230  │  (STM32F407VGT6)      │
 │  ROS2 nodes      │                                        │  Bare-metal firmware │
 │  (python-can /   │                                        │  HAL + bxCAN         │
 │   SocketCAN)     │                                        │                      │
@@ -80,25 +80,35 @@ Raspberry Pi side).
 
 - Raspberry Pi 5
 - MCP2515-based CAN HAT (SPI)
-- STM32 Nucleo L476RG **or** STM32F4 Discovery (STM32F407VGT6)
+- STM32F4 Discovery (STM32F407VGT6)
 - SN65HVD230 CAN transceiver
 - 120-ohm termination resistors (x2, one at each end of the bus)
+
+### CAN Wiring
+
+| Signal | STM32F4 Discovery pin | Note |
+|---|---|---|
+| CAN1_RX | PD0 | PA11/PA12 are used by USB OTG, so CAN1 is remapped to PD0/PD1 |
+| CAN1_TX | PD1 | |
+
+Logs are shown via USB CDC (dedicated micro-USB OTG FS connector, CN5),
+not through the ST-Link connector (CN1).
 
 ## Repository Structure
 
 ```
 .
-├── ros2_ws/                          # ROS2 workspace (Raspberry Pi side)
+├── ros2_ws/                    # ROS2 workspace (Raspberry Pi side)
 │   └── src/stm32_can_bridge/
 │       ├── stm32_can_bridge/
 │       │   ├── can_position_publisher.py
 │       │   ├── can_ack_listener.py
 │       │   └── can_string_sender.py
 │       └── launch/bridge_launch.py
-├── stm32_firmware/                   # STM32 firmware (bare-metal, HAL)
+├── stm32_firmware_f4_discovery/ # Firmware for the STM32F4 Discovery (USB CDC)
 │   ├── Core/Src/main.c
 │   └── ...
-└── docs/                             # Documentation, diagrams, CubeMX config
+└── docs/                        # Documentation, diagrams, CubeMX config
 ```
 
 ## Installation and Usage
@@ -137,12 +147,15 @@ ros2 run stm32_can_bridge can_string_sender
 
 ### 3. STM32 Firmware
 
-1. Open the project in STM32CubeIDE
-2. Verify the CAN1 configuration (see `docs/` for board-specific details)
-3. Build and flash
+1. Open the `stm32_firmware_f4_discovery/` project in STM32CubeIDE
+2. Verify the CAN1 configuration (PD0/PD1, prescaler) against the wiring
+   table above
+3. Build and flash via the ST-Link connector (CN1)
+4. Plug a second cable into the OTG FS connector (CN5, micro-USB), which
+   shows up as `/dev/ttyACM0` once the USB CDC firmware is running, and
+   open a serial terminal on it to view the logs
 
-See the full documentation in `docs/` for CubeMX configuration details
-specific to the board used (Nucleo L476RG or F4 Discovery).
+See the full documentation in `docs/` for CubeMX configuration details.
 
 ## Possible Improvements
 
@@ -160,4 +173,5 @@ MIT — see the `LICENSE` file.
 
 ## Author
 
-Project developed by [Your Name] — [GitHub / LinkedIn link]
+Project developed by **Ben Azza Mohamed Yessine**
+[LinkedIn](https://www.linkedin.com/in/mohamed-yessine-ben-azza-a5a2aa214/)
